@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stop Watch</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Georgia, serif;
+      background: #f5f0e8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #2b2b2b;
+      margin-bottom: 4px;
+      font-weight: normal;
+      text-align: center;
+    }
+
+    .tagline {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 32px;
+      font-style: italic;
+      text-align: center;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 32px 28px 24px;
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .time {
+      font-size: 52px;
+      color: #222;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+
+    .millis {
+      font-size: 18px;
+      color: #bbb;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 28px;
+    }
+
+    .btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    button {
+      font-family: Georgia, serif;
+      font-size: 14px;
+      padding: 9px 20px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background: #fff;
+      color: #333;
+      cursor: pointer;
+    }
+
+    button:hover { background: #f0ece4; }
+    button:active { background: #e5e0d8; }
+
+    #btn-main {
+      background: #2b2b2b;
+      color: #fff;
+      border-color: #2b2b2b;
+      min-width: 80px;
+    }
+
+    #btn-main:hover { background: #444; }
+    #btn-main.pause-mode { background: #c0392b; border-color: #c0392b; }
+
+    .lap-area {
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+    }
+
+    .lap-label {
+      font-size: 12px;
+      color: #aaa;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .lap-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+      color: #444;
+      font-family: 'Courier New', monospace;
+      background: #fff;
+    }
+
+    .lap-item:first-child { border-top: 1px solid #eee; }
+    .lap-num { color: #aaa; }
+  </style>
+</head>
+<body>
+
+  <h1>Stop Watch</h1>
+  <p class="tagline">time flies — catch it while you can</p>
+
+  <div class="card">
+    <div class="time" id="time">00:00:00</div>
+    <div class="millis" id="ms">.00</div>
+    <div class="btns">
+      <button id="btn-main" onclick="toggle()">Start</button>
+      <button onclick="lap()" id="btn-lap" disabled style="opacity:0.4">Lap</button>
+      <button onclick="reset()">Reset</button>
+    </div>
+  </div>
+
+  <div class="lap-area" id="lap-area" style="display:none">
+    <p class="lap-label">Laps</p>
+    <div id="lap-list"></div>
+  </div>
+
+  <script>
+    var start = 0, elapsed = 0, interval = null, running = false, laps = [], lastLap = 0;
+
+    function pad(n, l) { return String(n).padStart(l, '0'); }
+
+    function fmt(ms) {
+      var h = Math.floor(ms / 3600000);
+      var m = Math.floor((ms % 3600000) / 60000);
+      var s = Math.floor((ms % 60000) / 1000);
+      var cs = Math.floor((ms % 1000) / 10);
+      return { hms: pad(h,2)+':'+pad(m,2)+':'+pad(s,2), cs: '.'+pad(cs,2) };
+    }
+
+    function tick() {
+      elapsed = Date.now() - start;
+      var t = fmt(elapsed);
+      document.getElementById('time').textContent = t.hms;
+      document.getElementById('ms').textContent = t.cs;
+    }
+
+    function toggle() {
+      var btn = document.getElementById('btn-main');
+      var lapBtn = document.getElementById('btn-lap');
+      if (!running) {
+        start = Date.now() - elapsed;
+        interval = setInterval(tick, 30);
+        running = true;
+        btn.textContent = 'Pause';
+        btn.classList.add('pause-mode');
+        lapBtn.disabled = false;
+        lapBtn.style.opacity = '1';
+      } else {
+        clearInterval(interval);
+        running = false;
+        btn.textContent = 'Resume';
+        btn.classList.remove('pause-mode');
+        lapBtn.disabled = true;
+        lapBtn.style.opacity = '0.4';
+      }
+    }
+
+    function lap() {
+      var split = elapsed - lastLap;
+      laps.push({ n: laps.length + 1, split: split, total: elapsed });
+      lastLap = elapsed;
+      var area = document.getElementById('lap-area');
+      var list = document.getElementById('lap-list');
+      area.style.display = 'block';
+      var t = fmt(split);
+      var div = document.createElement('div');
+      div.className = 'lap-item';
+      div.innerHTML = '<span class="lap-num">Lap ' + laps.length + '</span><span>' + t.hms + t.cs + '</span>';
+      list.insertBefore(div, list.firstChild);
+    }
+
+    function reset() {
+      clearInterval(interval);
+      running = false; elapsed = 0; lastLap = 0; laps = [];
+      document.getElementById('time').textContent = '00:00:00';
+      document.getElementById('ms').textContent = '.00';
+      var btn = document.getElementById('btn-main');
+      btn.textContent = 'Start';
+      btn.classList.remove('pause-mode');
+      document.getElementById('btn-lap').disabled = true;
+      document.getElementById('btn-lap').style.opacity = '0.4';
+      document.getElementById('lap-area').style.display = 'none';
+      document.getElementById('lap-list').innerHTML = '';
+    }
+  </script>
+
+</body>
+</html>
